@@ -20,9 +20,11 @@ start(Port) ->
 	start(normal, Port).
 
 stop() ->
+	exit(whereis(mockserver_sup), normal),
 	stop(normal).
 
 restart(Port) ->
 	stop(),
+	timer:sleep(10),
 	start(Port).
 
