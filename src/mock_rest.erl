@@ -13,22 +13,13 @@
 %%
 
 handle(Req, Args) ->
-    %% Delegate to our handler function
     io:format("Req Args : ~p~n", [Args]),
     handle(Req#req.method, elli_request:path(Req), Req, Args).
 
 
 
-handle(Type,[Path], _Req, Args) ->
-	case lists:keyfind(Type, 1, Args) of
-		{_, Paths} -> 
-			case lists:keyfind(Path, 1, Paths) of
-				{_, Responses} -> hd(Responses);
-                false -> {404, [], <<"Not a set rule">>}
-            end;
-		false ->
-			{404, [], <<"Not a set rule">>}
-	end;
+handle(Type, [Path], _Req, Args) ->
+    maps:get(Path,maps:get(Type, Args, #{}), {404, [], <<"Not a valid rule">>});
 
 % handle('GET',[<<"hello">>, <<"world">>], _Req, _Args) ->
 %     %% Reply with a normal response. 'ok' can be used instead of '200'
@@ -48,8 +39,8 @@ handle(Type,[Path], _Req, Args) ->
 %     {ok, [], <<"Hello ", Name/binary, " of ", City/binary>>};
 
 handle(_, _, _Req, _Args) ->
-    io:format("IN not found~n"),
-    {404, [], <<"Not Found">>}.
+    io:format("Not a valid rule~n"),
+    {404, [], <<"Not a valid rul">>}.
 
 
 

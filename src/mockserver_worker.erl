@@ -2,7 +2,7 @@
 
 -behaviour(gen_server).
 
--export([start_link/1]).
+-export([start_link/1, stop/0]).
 
 %% gen_server callbacks
 -export([init/1,
@@ -14,16 +14,23 @@
 
 -record(state, {}).
 
-start_link(Args) ->
-    gen_server:start_link({local, ?MODULE}, ?MODULE, Args, []).
+start_link(Port) ->
+    gen_server:start_link({local, ?MODULE}, ?MODULE, [Port], []).
 
-init([]) ->
-	io:format("Starting elli~n"),
-	CallbackArgs = [{'GET', 
-		[
-			{<<"provs">>, [{ok, [], <<"got_provs">>}]}]
-	}],
-	{ok, Pid} = elli:start_link([{callback, mock_rest}, {port, 3000}, {callback_args, CallbackArgs}]),
+init([Port]) ->
+	io:format("Starting elli on Port: ~p~n", [Port]),
+	io:format("Reading config~n"),
+	io:format("~p~n", [c:pwd()]),
+	{ok, [#{rules := Rules, response := Response}]} = file:consult("rules.config"),
+	CallbackArgs = maps:map(fun(K, V) -> 
+		maps:map(fun(K2, V2) ->
+			lists:keyfind(V2, 1, maps:get(K2, maps:get(K, Rules)))
+			end, V) end, Response),
+	io:format("CallbackArgs : ~p~n", [CallbackArgs]),
+	% CallbackArgs = #{'GET' => #{<<"provs">> => {200, [], <<"got_provs">>}}},
+	{ok, _Pid} = elli:start_link([{callback, mock_rest}, 
+								  {port, Port}, 
+								  {callback_args, CallbackArgs}]),
     {ok, #state{}}.
 
 handle_call(_Request, _From, State) ->
@@ -40,3 +47,6 @@ terminate(_Reason, _State) ->
 
 code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
+
+stop() ->
+	terminate(stopping, {}).
