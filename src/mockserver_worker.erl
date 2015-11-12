@@ -21,11 +21,15 @@ init([Port]) ->
 	io:format("Starting elli on Port: ~p~n", [Port]),
 	io:format("Reading config~n"),
 	io:format("~p~n", [c:pwd()]),
-	{ok, [#{rules := Rules, response := Response}]} = file:consult("rules.config"),
+	{ok, [#{rules := Rules, responses := Responses}]} = file:consult("rules.config"),
 	CallbackArgs = maps:map(fun(K, V) -> 
 		maps:map(fun(K2, V2) ->
-			lists:keyfind(V2, 1, maps:get(K2, maps:get(K, Rules)))
-			end, V) end, Response),
+			Req = maps:get(K2, maps:get(K, Rules)),
+			#{response => lists:keyfind(V2, 1, 
+				maps:get(response, Req)),
+			  data => maps:get(data, Req, #{})
+			 }
+			end, V) end, Responses),
 	io:format("CallbackArgs : ~p~n", [CallbackArgs]),
 	% CallbackArgs = #{'GET' => #{<<"provs">> => {200, [], <<"got_provs">>}}},
 	{ok, _Pid} = elli:start_link([{callback, mock_rest}, 
