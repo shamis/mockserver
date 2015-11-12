@@ -27,7 +27,8 @@ init([Port]) ->
 			Req = maps:get(K2, maps:get(K, Rules)),
 			#{response => lists:keyfind(V2, 1, 
 				maps:get(response, Req)),
-			  data => maps:get(data, Req, #{})
+			  data => maps:get(data, Req, #{}),
+			  auth => maps:get(auth, Req, #{})
 			 }
 			end, V) end, Responses),
 	io:format("CallbackArgs : ~p~n", [CallbackArgs]),

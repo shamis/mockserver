@@ -20,7 +20,10 @@ start(Port) ->
 	start(normal, Port).
 
 stop() ->
-	exit(whereis(mockserver_sup), normal),
+	case whereis(mockserver_sup) of
+		undefined -> no_op;
+		Pid -> exit(Pid, normal)
+	end,
 	stop(normal).
 
 restart(Port) ->

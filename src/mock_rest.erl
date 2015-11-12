@@ -22,25 +22,22 @@ handle(Req, Args) ->
     end.
 
 handle(Type, [Path], Req, Args) when ((Type == 'POST') or (Type == 'PATCH')) ->
-     % io:format("path from config : ~p~n", [maps:get(Path, maps:get(Type, Args))]),
-     #{data := Data, response := Response} = maps:get(Path, 
+    #{data := Data, response := Response, auth := Auth} = maps:get(Path, 
         maps:get(Type, Args)),
-     PData = jsxn:decode(elli_request:post_args(Req)),
-     case check_data(PData, Data) of
-        true -> Response;
-        false -> {400, [], <<"Not all required parameters present in the request">>}
+    case authenticate(Auth, elli_request:get_header(<<"Authorization">>,Req)) of
+        true ->
+            PData = jsxn:decode(elli_request:post_args(Req)),
+            case check_data(PData, Data) of
+                true -> Response;
+                false -> {400, [], <<"Not all required parameters present in the request">>}
+            end;
+        false -> {401, [], <<"Not authorized">>}
     end;
-     %io:format("Post Args : ~p~n", [elli_request:post_args(Req)]),
 
 handle(Type, [Path], _Req, Args) ->
     maps:get(response, 
         maps:get(Path,
             maps:get(Type, Args)));
-
-% handle('GET',[<<"hello">>, <<"world">>], _Req, _Args) ->
-%     %% Reply with a normal response. 'ok' can be used instead of '200'
-%     %% to signal success.
-%     {ok, [], <<"Hello World!">>};
 
 % handle('GET', [<<"hello">>], Req, _Args) ->
 %     %% Fetch a GET argument from the URL.
@@ -56,7 +53,7 @@ handle(Type, [Path], _Req, Args) ->
 
 handle(_, _, _Req, _Args) ->
     io:format("Not a valid rule~n"),
-    {404, [], <<"Not a valid rul">>}.
+    {404, [], <<"Not a valid rule">>}.
 
 handle_event(_, _, _) ->
     ok.
@@ -65,3 +62,12 @@ check_data(PData, Data) ->
     lists:all(fun(E) -> 
         maps:is_key(E, PData)
         end, Data).
+
+authenticate([basic, Username, Password], AuthHeader) ->
+    Auth = base64:encode(Username ++ ":" ++ Password),
+    case binary:split(AuthHeader, <<" ">>) of
+        [<<"Basic">>, Auth] -> true;
+        _ -> false
+    end;
+authenticate([Type|_], _) ->
+    io:format("Authentication type : ~p not supoorted~n", [Type]).
