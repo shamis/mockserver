@@ -12,7 +12,7 @@
 %%
 
 handle(Req, Args) ->
-    [Path] = elli_request:path(Req),
+    Path = elli_request:path(Req),
     case maps:get(Path, maps:get(Req#req.method, Args, #{}),undefined) of
         undefined ->
             {404, [], <<"Not a valid rule">>};

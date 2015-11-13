@@ -23,14 +23,17 @@ init([Port]) ->
 	io:format("~p~n", [c:pwd()]),
 	{ok, [#{rules := Rules, responses := Responses}]} = file:consult("rules.config"),
 	CallbackArgs = maps:map(fun(K, V) -> 
-		maps:map(fun(K2, V2) ->
-			Req = maps:get(K2, maps:get(K, Rules)),
-			#{response => lists:keyfind(V2, 1, 
-				maps:get(response, Req)),
-			  data => maps:get(data, Req, #{}),
-			  auth => maps:get(auth, Req, #{})
-			 }
-			end, V) end, Responses),
+		lists:foldl(fun(E, Acc) ->
+				M = maps:map(fun(K2, V2) ->
+					Req = maps:get(K2, maps:get(K, Rules)),
+					#{response => lists:keyfind(V2, 1, 
+						maps:get(response, Req)),
+					  data => maps:get(data, Req, #{}),
+					  auth => maps:get(auth, Req, #{})
+					 }
+				end, E), 
+			maps:merge(Acc, M) end, #{}, V) end,
+		Responses),
 	io:format("CallbackArgs : ~p~n", [CallbackArgs]),
 	% CallbackArgs = #{'GET' => #{<<"provs">> => {200, [], <<"got_provs">>}}},
 	{ok, _Pid} = elli:start_link([{callback, mock_rest}, 
