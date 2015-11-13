@@ -12,32 +12,30 @@
 %%
 
 handle(Req, Args) ->
-    try handle(Req#req.method, elli_request:path(Req), Req, Args) of
-        Response -> Response
-    catch
-        E1:E2 -> 
-            io:format("Error ~p:~p~n", [E1, E2]),
-            erlang:display(erlang:get_stacktrace()),
-            {404, [], <<"Not a valid rule">>}
+    [Path] = elli_request:path(Req),
+    case maps:get(Path, maps:get(Req#req.method, Args, #{}),undefined) of
+        undefined ->
+            {404, [], <<"Not a valid rule">>};
+        Rule ->
+            case authenticate(maps:get(auth, Rule, undefined),
+                elli_request:get_header(<<"Authorization">>,Req, undefined)) of
+                true ->
+                    handle(Req#req.method, Req, Rule);
+                false ->
+                    {401, [], <<"Not authorized">>}
+            end
     end.
 
-handle(Type, [Path], Req, Args) when ((Type == 'POST') or (Type == 'PATCH')) ->
-    #{data := Data, response := Response, auth := Auth} = maps:get(Path, 
-        maps:get(Type, Args)),
-    case authenticate(Auth, elli_request:get_header(<<"Authorization">>,Req)) of
-        true ->
-            PData = jsxn:decode(elli_request:post_args(Req)),
-            case check_data(PData, Data) of
-                true -> Response;
-                false -> {400, [], <<"Not all required parameters present in the request">>}
-            end;
-        false -> {401, [], <<"Not authorized">>}
+handle(Type, Req, #{response := Response, data := Data}) 
+    when ((Type == 'POST') or (Type == 'PATCH')) ->
+    PData = jsxn:decode(elli_request:post_args(Req)),
+    case check_data(PData, Data) of
+        true -> Response;
+        false -> {400, [], <<"Not all required parameters present in the request">>}
     end;
 
-handle(Type, [Path], _Req, Args) ->
-    maps:get(response, 
-        maps:get(Path,
-            maps:get(Type, Args)));
+handle(_Type, _Req, #{response := Response}) ->
+   Response; 
 
 % handle('GET', [<<"hello">>], Req, _Args) ->
 %     %% Fetch a GET argument from the URL.
@@ -51,7 +49,7 @@ handle(Type, [Path], _Req, Args) ->
 %     City = elli_request:post_arg_decoded(<<"city">>, Req, <<"undefined">>),
 %     {ok, [], <<"Hello ", Name/binary, " of ", City/binary>>};
 
-handle(_, _, _Req, _Args) ->
+handle(_, _Req, _Args) ->
     io:format("Not a valid rule~n"),
     {404, [], <<"Not a valid rule">>}.
 
@@ -70,4 +68,7 @@ authenticate([basic, Username, Password], AuthHeader) ->
         _ -> false
     end;
 authenticate([Type|_], _) ->
-    io:format("Authentication type : ~p not supoorted~n", [Type]).
+    io:format("Authentication type : ~p not supoorted~n", [Type]),
+    true;
+authenticate(undefined, _) -> true;
+authenticate(_, undefined) -> true.
