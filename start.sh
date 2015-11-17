@@ -1,1 +1,1 @@
-werl -pa ebin/ -pa deps/*/ebin/ &
+erl -pa ebin/ -pa deps/*/ebin/ &
