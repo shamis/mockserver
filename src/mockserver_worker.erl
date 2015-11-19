@@ -16,7 +16,9 @@
 
 start_link(Port) ->
     gen_server:start_link({local, ?MODULE}, ?MODULE, [Port], []).
-
+    
+init([[]]) ->
+	init([4000]);
 init([Port]) ->
 	io:format("Starting elli on Port: ~p~n", [Port]),
 	io:format("Reading config~n"),

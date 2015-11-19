@@ -11,19 +11,13 @@
 %% ===================================================================
 
 start(_StartType, StartArgs) ->
+	io:format("StartArgs : ~p~n", [StartArgs]),
     mockserver_sup:start_link(StartArgs).
-
-stop(_State) ->
-    ok.
 
 start(Port) ->
 	start(normal, Port).
 
 stop() ->
-	case whereis(mockserver_sup) of
-		undefined -> no_op;
-		Pid -> exit(Pid, normal)
-	end,
 	stop(normal).
 
 restart(Port) ->
@@ -31,3 +25,10 @@ restart(Port) ->
 	timer:sleep(10),
 	start(Port).
 
+
+stop(_State) ->
+    io:format("Shutting down mockserver~n"),
+    case whereis(mockserver_sup) of
+		undefined -> no_op;
+		Pid -> exit(Pid, normal)
+	end.
