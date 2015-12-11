@@ -13,6 +13,7 @@
 
 handle(Req, Args) ->
     Path = elli_request:path(Req),
+    io:format("got Request path : ~p Type : ~p~n", [Path, Req#req.method]),
     case maps:get(Path, maps:get(Req#req.method, Args, #{}),undefined) of
         undefined ->
             {404, [], <<"Not a valid rule">>};
@@ -27,7 +28,7 @@ handle(Req, Args) ->
     end.
 
 handle(Type, Req, #{response := Response, data := Data}) 
-    when ((Type == 'POST') or (Type == 'PATCH')) ->
+    when ((Type == 'POST') or (Type == 'PUT')) ->
     PData = jsxn:decode(elli_request:post_args(Req)),
     case check_data(PData, Data) of
         true -> Response;
